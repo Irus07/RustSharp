@@ -7,9 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Frontend\" />
     <Folder Include="Backend\" />
-    <Folder Include="Grammar\" />
+    <Folder Include="Frontend\" />
   </ItemGroup>
 
 </Project>
