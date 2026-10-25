@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Frontend\" />
+    <Folder Include="Backend\" />
+    <Folder Include="Grammar\" />
+  </ItemGroup>
+
 </Project>
