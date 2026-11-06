@@ -25,7 +25,12 @@
    - 7.1 [Структуры (`struct`) против Классов (`class`)](#71-структуры-struct-против-классов-class)
    - 7.2 [Модификаторы доступа и статические члены](#72-модификаторы-доступа-и-статические-члены)
    - 7.3 [Наследование (`open class`) и виртуальные методы](#73-наследование-open-class-и-виртуальные-методы)
-8. [Обработка ошибок и Базовый ввод-вывод](#8-обработка-ошибок-и-базовый-ввод-вывод)
+8. [Соглашения об именовании (CamelCase)](#8-соглашения-об-именовании-camelcase)
+9. [Обработка ошибок и Базовый ввод-вывод](#9-обработка-ошибок-и-базовый-ввод-вывод)
+   - 9.1 [Типизированные ошибки (`Error`, `throw`)](#91-типизированные-ошибки-error-throw)
+   - 9.2 [Перехват исключений (`try / catch / finally`)](#92-перехват-исключений-try--catch--finally)
+   - 9.3 [Фатальные сбои (`panic`)](#93-фатальные-сбои-panic)
+   - 9.4 [Консольный ввод-вывод](#94-консольный-ввод-вывод)
 
 ---
 
@@ -111,11 +116,11 @@ let message = "Success";  // Тип выведен как str
 var score = 85;
 
 if score >= 90 {
-    Console.Println("Отлично");
+    Console.println("Отлично");
 } else if score >= 60 {
-    Console.Println("Хорошо");
+    Console.println("Хорошо");
 } else {
-    Console.Println("Попробуйте снова");
+    Console.println("Попробуйте снова");
 }
 ```
 
@@ -125,18 +130,18 @@ if score >= 90 {
 // Цикл while
 var n = 3;
 while n > 0 {
-    Console.Println(n);
+    Console.println(n);
     n = n - 1;
 }
 
 // Цикл for по коллекции или диапазону
 for item in items {
-    Console.Println(item);
+    Console.println(item);
 }
 
 // Цикл for с индексом (через точку с запятой ;)
 for index; item in items {
-    Console.Println(index, item);
+    Console.println(index, item);
 }
 ```
 
@@ -151,13 +156,13 @@ for index; item in items {
 
 ```rustsharp
 // Функция с параметрами и возвращаемым значением
-fn Sum(a: int, b: int) -> int {
+fn sum(a: int, b: int) -> int {
     return a + b;
 }
 
 // Процедура (возврат void)
-pub fn Greet(name: str) -> void {
-    Console.Println("Привет, " + name);
+pub fn greet(name: str) -> void {
+    Console.println("Привет, " + name);
 }
 ```
 
@@ -169,7 +174,7 @@ RustSharp даёт гибкость выбора модели исполнени
 // 1. Адаптивная функция по умолчанию (Non-strict / Hybrid)
 // Оптимизируется до Zero-Cost RAII, а при сложных циклических графах
 // ссылок компилятор прозрачно включает GC Fallback без ошибок сборки.
-fn ProcessOrder(id: int) -> str {
+fn processOrder(id: int) -> str {
     var details = "Order #" + id;
     return details;
 }
@@ -177,13 +182,13 @@ fn ProcessOrder(id: int) -> str {
 // 2. Строго нативная функция (Zero-Cost / Strict Native)
 // Полный запрет на работу сборщика мусора и скрытые накладные расходы.
 // Ошибки неразрешенных времен жизни приводят к ошибке сборки.
-native fn FastCompute(val: &int) -> int {
+native fn fastCompute(val: &int) -> int {
     return *val * 2;
 }
 
 // 3. Управляемая функция (Managed / Runtime)
 // Явно исполняется в среде рантайма с полной поддержкой Tracing GC и динамики.
-runtime fn BuildUserInterface() -> Window {
+runtime fn buildUserInterface() -> Window {
     var win = Window();
     return win;
 }
@@ -194,7 +199,7 @@ runtime fn BuildUserInterface() -> Window {
 Внутри любой функции можно локально ограничить или расширить права среды:
 
 ```rustsharp
-fn WorkerPipeline() -> void {
+fn workerPipeline() -> void {
     native {
         // Гарантированно Zero-Cost: выделение в Managed Heap строго запрещено
         var buffer: byte[] = stackalloc byte[1024];
@@ -203,7 +208,7 @@ fn WorkerPipeline() -> void {
 
     runtime {
         // Управляемый блок: логирование, обращение к сервисам GC
-        Console.Println("Низкоуровневая обработка завершена");
+        Console.println("Низкоуровневая обработка завершена");
     }
 }
 ```
@@ -220,15 +225,15 @@ fn WorkerPipeline() -> void {
 - **`own T`** — явная передача владения объектом.
 
 ```rustsharp
-fn ReadData(val: &int) -> int {
+fn readData(val: &int) -> int {
     return *val;
 }
 
-fn Increment(val: &var int) -> void {
+fn increment(val: &var int) -> void {
     *val = *val + 1;
 }
 
-native fn ConsumeResource(own res: Resource) -> void {
+native fn consumeResource(own res: Resource) -> void {
     // res освобождается детерминированно в конце области видимости
 }
 ```
@@ -267,7 +272,7 @@ class UserAccount {
     pub var username: str;
     var balance: double;
 
-    pub fn Deposit(amount: double) -> void {
+    pub fn deposit(amount: double) -> void {
         balance = balance + amount;
     }
 }
@@ -281,7 +286,7 @@ class UserAccount {
 
 ```rustsharp
 class MathUtils {
-    pub static fn Abs(x: int) -> int {
+    pub static fn abs(x: int) -> int {
         if x < 0 {
             return -x;
         }
@@ -289,7 +294,7 @@ class MathUtils {
     }
 }
 
-var positive = MathUtils.Abs(-15);
+var positive = MathUtils.abs(-15);
 ```
 
 ### 7.3 Наследование (`open class`) и виртуальные методы
@@ -303,37 +308,109 @@ var positive = MathUtils.Abs(-15);
 open class Entity {
     pub var id: int;
 
-    pub virtual fn Describe() -> void {
-        Console.Println("Базовая сущность");
+    pub virtual fn describe() -> void {
+        Console.println("Базовая сущность");
     }
 }
 
 class Player : Entity {
     pub var nickname: str;
 
-    pub override fn Describe() -> void {
-        Console.Println("Игрок: " + nickname);
+    pub override fn describe() -> void {
+        Console.println("Игрок: " + nickname);
     }
 }
 ```
 
 ---
 
-## 8. Обработка ошибок и Базовый ввод-вывод
+---
+
+## 8. Соглашения об именовании (CamelCase)
+
+> 📖 **Спецификация:** [Раздел 1.3 Соглашения об именовании](spec/SPECIFICATION.md#13-соглашения-об-именовании-camelcase)
+
+В RustSharp принят стандарт **CamelCase**:
+- **`camelCase` (нижний CamelCase):**
+  - Имена функций и методов: `calculateTotal()`, `processOrder()`, `printGreeting()`
+  - Имена переменных, параметров и полей: `orderId`, `bufferLength`, `isValid`
+- **`UpperCamelCase` (PascalCase):**
+  - Имена структур, классов, интерфейсов: `UserAccount`, `Point`, `ISerializable`
+  - Имена типов ошибок/исключений: `DivideByZeroError`, `FileNotFoundError`
+  - Имена модулей: `Math::Geometry`
+- **`UPPER_SNAKE_CASE`:**
+  - Глобальные константы времени компиляции: `MAX_BUFFER_SIZE`
+
+---
+
+## 9. Обработка ошибок и Базовый ввод-вывод
 
 > 📖 **Спецификация:** [Глава 11. Обработка ошибок](spec/SPECIFICATION.md#11-обработка-ошибок) и [Глава 12. Стандартная библиотека](spec/SPECIFICATION.md#12-стандартная-библиотека)
 
+RustSharp разделяет **восстановимые типизированные ошибки** и **фатальные сбои**.
+
+### 9.1 Типизированные ошибки (`Error`, `throw`)
+
+Все пользовательские ошибки наследуются от `Error`:
+
 ```rustsharp
-fn Divide(a: int, b: int) -> int {
-    if b == 0 {
-        panic("Деление на ноль недопустимо");
+class DivideByZeroError : Error {
+    pub fn init() -> void {
+        message = "Деление на ноль недопустимо";
+        code = 1001;
     }
-    return a / b;
 }
 
-fn Main() -> void {
-    Console.Println("Введите данные:");
-    var input: str = Console.ReadLine();
-    Console.Println("Вы ввели: " + input);
+fn divideNumbers(dividend: int, divisor: int) -> int {
+    if divisor == 0 {
+        var err = DivideByZeroError();
+        err.init();
+        throw err; // Выброс типизированной ошибки
+    }
+    return dividend / divisor;
+}
+```
+
+### 9.2 Перехват исключений (`try / catch / finally`)
+
+Ошибки можно перехватывать точечно по конкретному типу или полиморфно через базовый `Error`:
+
+```rustsharp
+fn calculate(a: int, b: int) -> void {
+    try {
+        var result = divideNumbers(a, b);
+        Console.println("Результат: " + result);
+    } catch (err: DivideByZeroError) {
+        // Перехват конкретной ошибки
+        Console.println("Ошибка вычисления: " + err.message);
+    } catch (err: Error) {
+        // Перехват любой другой ошибки
+        Console.println("Непредвиденная ошибка: " + err.message);
+    } finally {
+        Console.println("Блок завершил выполнение");
+    }
+}
+```
+
+### 9.3 Фатальные сбои (`panic`)
+
+Для невосстановимых системных катастроф (повреждение памяти, отказ железа) используется `panic`:
+
+```rustsharp
+native fn getRawPointer(addr: u64) -> byte {
+    if addr == 0 {
+        panic("Критический сбой: нулевой указатель");
+    }
+    return 0;
+}
+```
+
+### 9.4 Консольный ввод-вывод
+
+```rustsharp
+fn main() -> void {
+    Console.println("Введите ваше имя:");
+    var userName: str = Console.readLine();
+    Console.println("Добро пожаловать, " + userName);
 }
 ```
