@@ -30,28 +30,68 @@ public sealed class ParseResult
     }
 
     /// <summary>
-    /// Возвращает текстовое представление дерева разбора (Parse Tree) в структурированном виде.
+    /// Возвращает структурированное визуальное представление дерева разбора (Parse Tree).
     /// </summary>
-    public string DumpTree(RustSharpParser parser)
+    public string DumpTree()
     {
         if (Root == null)
             return "<пустое дерево разбора>";
 
         var sb = new StringBuilder();
-        DumpNode(Root, parser, 0, sb);
-        return sb.ToString();
+        DumpNode(Root, "", true, sb);
+        return sb.ToString().TrimEnd();
     }
 
-    private static void DumpNode(ITree node, Parser parser, int indent, StringBuilder sb)
+    /// <summary>
+    /// Возвращает текстовое представление дерева разбора для обратной совместимости.
+    /// </summary>
+    public string DumpTree(RustSharpParser? parser) => DumpTree();
+
+    private static void DumpNode(ITree node, string prefix, bool isTail, StringBuilder sb)
     {
-        string indentStr = new string(' ', indent * 2);
-        string nodeText = Trees.GetNodeText(node, parser);
+        string nodeName;
 
-        sb.Append(indentStr).AppendLine(nodeText);
-
-        for (int i = 0; i < node.ChildCount; i++)
+        if (node is IErrorNode errorNode)
         {
-            DumpNode(node.GetChild(i), parser, indent + 1, sb);
+            nodeName = $"<ErrorNode: {errorNode.Symbol?.Text ?? "UNKNOWN"}>";
+        }
+        else if (node is RuleContext rc)
+        {
+            int ruleIndex = rc.RuleIndex;
+            string ruleName = (ruleIndex >= 0 && ruleIndex < RustSharpParser.ruleNames.Length)
+                ? RustSharpParser.ruleNames[ruleIndex]
+                : node.GetType().Name;
+            nodeName = $"[{ruleName}]";
+        }
+        else if (node is ITerminalNode tn)
+        {
+            string text = tn.Symbol.Text.Replace("\r", "\\r").Replace("\n", "\\n");
+            nodeName = $"'{text}'";
+        }
+        else
+        {
+            nodeName = node.ToString() ?? "";
+        }
+
+        sb.Append(prefix).AppendLine(nodeName);
+
+        int count = node.ChildCount;
+        for (int i = 0; i < count; i++)
+        {
+            bool childIsLast = (i == count - 1);
+            string newPrefix = prefix;
+
+            if (prefix.EndsWith("└── "))
+            {
+                newPrefix = prefix.Substring(0, prefix.Length - 4) + "    ";
+            }
+            else if (prefix.EndsWith("├── "))
+            {
+                newPrefix = prefix.Substring(0, prefix.Length - 4) + "│   ";
+            }
+
+            string branch = childIsLast ? "└── " : "├── ";
+            DumpNode(node.GetChild(i), newPrefix + branch, childIsLast, sb);
         }
     }
 }
