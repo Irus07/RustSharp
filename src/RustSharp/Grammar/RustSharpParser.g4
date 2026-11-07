@@ -1,7 +1,7 @@
-parser grammar Parser;
+parser grammar RustSharpParser;
 
 options {
-    tokenVocab = Lexer;
+    tokenVocab = RustSharpLexer;
 }
 
 // ==========================================

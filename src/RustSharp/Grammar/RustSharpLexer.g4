@@ -1,4 +1,4 @@
-lexer grammar Lexer;
+lexer grammar RustSharpLexer;
 
 // ==========================================
 // Keywords - Modules & Visibility
