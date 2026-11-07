@@ -1,6 +1,6 @@
 # RustSharp Memory Model: Hybrid Management (Ownership + Runtime Fallback)
 
-This document describes the memory management architecture of the **RustSharp** programming language, memory segmentation rules, function qualifiers `native` and `runtime`, and the compiler's adaptive mechanism for choosing between deterministic Zero-Cost RAII and the Managed Runtime (GC Fallback).
+This document describes the memory management architecture of the **RustSharp** programming language, memory segmentation rules, function qualifiers `native` and `runtime`, elimination of raw pointers in favor of safe references (`ref`), transparent auto-dereferencing, and the philosophy of optional ownership ("Use it — great, don't — no problem").
 
 ---
 
@@ -16,9 +16,11 @@ This document describes the memory management architecture of the **RustSharp** 
    - 3.2 [Strict Native Mode (`native fn`)](#32-strict-native-mode-native-fn)
    - 3.3 [Managed Mode (`runtime fn`)](#33-managed-mode-runtime-fn)
    - 3.4 [Scoped Blocks: `native { ... }` and `runtime { ... }`](#34-scoped-blocks-native----and-runtime---)
-4. [Ownership and References](#4-ownership-and-references)
-   - 4.1 [Ownership Transfer (`own`)](#41-ownership-transfer-own)
-   - 4.2 [Borrowing and References (`&`)](#42-borrowing-and-references-)
+4. [Safe References (`ref`) and Optional Ownership (`own`)](#4-safe-references-ref-and-optional-ownership-own)
+   - 4.1 [No Raw Pointers](#41-no-raw-pointers)
+   - 4.2 [Transparent Auto-Dereferencing](#42-transparent-auto-dereferencing)
+   - 4.3 [Safe Reference Types (`ref` and `ref var`)](#43-safe-reference-types-ref-and-ref-var)
+   - 4.4 [Optional Ownership ("Use it — great, don't — no problem")](#44-optional-ownership-use-it--great-dont--no-problem)
 5. [Compiler Pipeline: Runtime Fallback Algorithm](#5-compiler-pipeline-runtime-fallback-algorithm)
 6. [Cross-Domain Interoperability (Interop & Boundaries)](#6-cross-domain-interoperability-interop--boundaries)
 7. [Function Modes Comparison Matrix](#7-function-modes-comparison-matrix)
@@ -63,13 +65,13 @@ Modern programming languages often force developers into a trade-off:
 
 ```rustsharp
 // 1. Adaptive (non-strict) default function
-fn calculate_metrics(id: int) -> ResultData { ... }
+fn calculateMetrics(id: int) -> ResultData { ... }
 
 // 2. Strict native function (Zero-Cost, no GC)
-native fn fast_matrix_mul(a: &Matrix, b: &Matrix) -> Matrix { ... }
+native fn fastMatrixMul(a: ref Matrix, b: ref Matrix) -> Matrix { ... }
 
 // 3. Managed runtime function (GC-enabled)
-runtime fn render_ui_window(win: Window) -> void { ... }
+runtime fn renderUiWindow(win: Window) -> void { ... }
 ```
 
 ### 3.1 Default Adaptive Mode (`fn`)
@@ -91,36 +93,86 @@ Designed for high-level business logic, UI hierarchies, and dynamic scripting:
 ### 3.4 Scoped Blocks: `native { ... }` and `runtime { ... }`
 Allows granular domain switching inside any function body:
 ```rustsharp
-fn process_payload(data: Packet) -> void {
+fn processPayload(data: Packet) -> void {
     native {
         // Guaranteed zero-cost block; managed heap allocations are forbidden
-        var raw_buf: byte[] = stackalloc byte[512];
-        encrypt_native(raw_buf);
+        var rawBuf: byte[] = stackalloc byte[512];
+        encryptNative(rawBuf);
     }
 
     runtime {
         // Access managed subsystems
-        EventBus.Publish("Processed");
+        EventBus.publish("Processed");
     }
 }
 ```
 
 ---
 
-## 4. Cross-Domain Interoperability and Pinning
+## 4. Safe References (`ref`) and Optional Ownership (`own`)
+
+### 4.1 No Raw Pointers
+RustSharp completely omits raw pointers (`*T`, pointer arithmetic, null-pointer dereferencing). All references are safe and verified either by the compiler or by the managed runtime.
+
+### 4.2 Transparent Auto-Dereferencing
+Developers **never need to write `*ptr`**. Reading values, updating values, and accessing fields/methods happens directly:
+```rustsharp
+fn updateScore(scoreRef: ref var int) -> void {
+    scoreRef = scoreRef + 10; // Auto-dereference: no * needed
+}
+
+fn printPoint(p: ref Point) -> void {
+    Console.println(p.x);     // Direct member access via dot
+}
+```
+
+### 4.3 Safe Reference Types (`ref` and `ref var`)
+- `ref T` — immutable safe reference (read-only borrow).
+- `ref var T` — mutable safe reference (mutation allowed).
+- The caller writes `ref` at the call-site when passing a mutable reference for clarity: `updateScore(ref myScore);`.
+
+### 4.4 Optional Ownership ("Use it — great, don't — no problem")
+Ownership is not an imposed dogma in RustSharp:
+1. **Using `own` ("Great!"):**
+   - Explicitly signals single ownership transfer.
+   - The compiler guarantees deterministic destructor cleanup without GC overhead (Zero-Cost RAII).
+   - Ideal for files, sockets, native buffers, and performance-critical loops.
+2. **Not using `own` ("No problem!"):**
+   - Standard, ergonomic object passing.
+   - If the object escapes or forms complex graphs, **Runtime Fallback (GC)** handles it seamlessly without any compile-time borrow checker friction.
+
+```rustsharp
+native fn processPacket(own packet: Packet) -> void {
+    // packet freed deterministically at the end of the function
+}
+
+fn handleData() -> void {
+    // 1. Explicit ownership (Zero-Cost):
+    var p1 = Packet();
+    processPacket(own p1);
+
+    // 2. Standard usage without own:
+    var p2 = Packet();
+    EventBus.publish(p2); // Runtime takes care of everything
+}
+```
+
+---
+
+## 5. Cross-Domain Interoperability and Pinning
 
 When passing managed objects into native functions, the `pin` statement prevents the GC from moving the object in memory:
 ```rustsharp
-runtime fn send_to_hardware(buffer: ManagedBuffer) -> void {
-    pin (var ptr = &buffer[0]) {
-        hardware_write_native(ptr, buffer.Length);
+runtime fn sendToHardware(buffer: ManagedBuffer) -> void {
+    pin (var ptr = ref buffer[0]) {
+        hardwareWriteNative(ptr, buffer.Length);
     }
 }
 ```
 
 ---
 
-## 5. Function Modes Comparison Matrix
+## 6. Function Modes Comparison Matrix
 
 | Criterion | `native fn` | Default `fn` (Adaptive) | `runtime fn` |
 | :--- | :--- | :--- | :--- |
