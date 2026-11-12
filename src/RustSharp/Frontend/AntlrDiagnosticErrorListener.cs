@@ -1,22 +1,26 @@
 using Antlr4.Runtime;
+using RustSharp.Core.Diagnostics;
+using RustSharp.Core.Frontend;
 
 namespace RustSharp.Core.Frontend;
 
 /// <summary>
-/// Перехватывает синтаксические и лексические ошибки ANTLR и преобразует их в Diagnositic.
+/// Перехватывает синтаксические и лексические ошибки ANTLR
+/// и перенаправляет их в <see cref="CompilerDiagnostics"/>.
 /// </summary>
 public sealed class AntlrDiagnosticErrorListener : BaseErrorListener, IAntlrErrorListener<int>
 {
-    private readonly DiagnosticBag _diagnostics;
+    private readonly CompilerDiagnostics _diagnostics;
     private readonly string? _filePath;
 
-    public AntlrDiagnosticErrorListener(DiagnosticBag diagnostics, string? filePath = null)
+    public AntlrDiagnosticErrorListener(CompilerDiagnostics diagnostics, string? filePath = null)
     {
         _diagnostics = diagnostics;
-        _filePath = filePath;
+        _filePath    = filePath;
     }
 
-    // Ошибки парсера
+    // ── Ошибки парсера ───────────────────────────────────────────────────────
+
     public override void SyntaxError(
         TextWriter output,
         IRecognizer recognizer,
@@ -27,14 +31,15 @@ public sealed class AntlrDiagnosticErrorListener : BaseErrorListener, IAntlrErro
         RecognitionException e)
     {
         var start = new SourceLocation(line, charPositionInLine + 1, offendingSymbol?.StartIndex ?? 0);
-        var stopIndex = offendingSymbol?.StopIndex ?? offendingSymbol?.StartIndex ?? 0;
-        var end = new SourceLocation(line, charPositionInLine + 1 + Math.Max(1, stopIndex - (offendingSymbol?.StartIndex ?? 0) + 1), stopIndex);
-        var span = new SourceSpan(start, end, _filePath);
+        int stopIdx = offendingSymbol?.StopIndex ?? offendingSymbol?.StartIndex ?? 0;
+        var end   = new SourceLocation(line, charPositionInLine + 1 + Math.Max(1, stopIdx - (offendingSymbol?.StartIndex ?? 0) + 1), stopIdx);
+        var span  = new SourceSpan(start, end, _filePath);
 
-        _diagnostics.ReportError("RS0001", msg, span);
+        _diagnostics.ReportError("P1", msg, span);
     }
 
-    // Ошибки лексера
+    // ── Ошибки лексера ───────────────────────────────────────────────────────
+
     public void SyntaxError(
         TextWriter output,
         IRecognizer recognizer,
@@ -44,9 +49,9 @@ public sealed class AntlrDiagnosticErrorListener : BaseErrorListener, IAntlrErro
         string msg,
         RecognitionException e)
     {
-        var loc = new SourceLocation(line, charPositionInLine + 1, 0);
+        var loc  = new SourceLocation(line, charPositionInLine + 1, 0);
         var span = new SourceSpan(loc, loc, _filePath);
 
-        _diagnostics.ReportError("RS0002", $"Лексическая ошибка: {msg}", span);
+        _diagnostics.ReportError("L1", $"Лексическая ошибка: {msg}", span);
     }
 }

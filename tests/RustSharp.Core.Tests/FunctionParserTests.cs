@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using Xunit.Abstractions;
 using RustSharp.Core.Frontend;
 using RustSharp.Core.Frontend.Generated;
@@ -27,9 +27,9 @@ public class FunctionParserTests
         _output.WriteLine("=== Parse Tree for addNumbers ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
         Assert.NotNull(result.Root);
-        Assert.Empty(result.Diagnostics.Diagnostics);
+        Assert.Empty(result.Diagnostics.Errors.Messages);
 
         var topLevelItems = result.Root.topLevelItem();
         Assert.Single(topLevelItems);
@@ -75,8 +75,8 @@ public class FunctionParserTests
         _output.WriteLine("=== Parse Tree for updateMetrics ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
-        Assert.Empty(result.Diagnostics.Diagnostics);
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
+        Assert.Empty(result.Diagnostics.Errors.Messages);
 
         var func = result.Root!.topLevelItem(0).functionDeclaration();
         Assert.NotNull(func);
@@ -123,7 +123,7 @@ public class FunctionParserTests
         _output.WriteLine("=== Parse Tree for mutateData ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
         var func = result.Root!.topLevelItem(0).functionDeclaration();
         var parameters = func.functionSignature().parameterList().parameter();
         Assert.Equal(2, parameters.Length);
@@ -154,8 +154,8 @@ public class FunctionParserTests
         _output.WriteLine("=== Parse Tree for handlePacket ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
-        Assert.Empty(result.Diagnostics.Diagnostics);
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
+        Assert.Empty(result.Diagnostics.Errors.Messages);
 
         var func = result.Root!.topLevelItem(0).functionDeclaration();
         Assert.NotNull(func);
@@ -188,7 +188,7 @@ public class FunctionParserTests
         _output.WriteLine("=== Parse Tree for printGreeting ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
         var func = result.Root!.topLevelItem(0).functionDeclaration();
         Assert.NotNull(func);
 
@@ -208,13 +208,13 @@ public class FunctionParserTests
 
         var result = CompilerFrontend.Parse(brokenCode);
         _output.WriteLine("=== Parse Diagnostics for broken code ===");
-        foreach (var diag in result.Diagnostics.Diagnostics)
+        foreach (var diag in result.Diagnostics.Errors.Messages)
         {
             _output.WriteLine(diag.ToString());
         }
 
         Assert.False(result.IsSuccess);
         Assert.True(result.Diagnostics.HasErrors);
-        Assert.NotEmpty(result.Diagnostics.Diagnostics);
+        Assert.NotEmpty(result.Diagnostics.Errors.Messages);
     }
 }

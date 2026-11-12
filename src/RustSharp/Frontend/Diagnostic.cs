@@ -1,5 +1,15 @@
+// Этот файл оставлен для обратной совместимости.
+// Новый API диагностики находится в RustSharp.Core.Diagnostics.
+// Старый DiagnosticBag / Diagnostic переведены в обёртки над CompilerDiagnostics.
+
+using RustSharp.Core.Diagnostics;
+
 namespace RustSharp.Core.Frontend;
 
+/// <summary>
+/// Устаревший тип. Используйте <see cref="DiagnosticSeverity"/> из <c>RustSharp.Core.Diagnostics</c>.
+/// </summary>
+[Obsolete("Используйте RustSharp.Core.Diagnostics.DiagnosticSeverity")]
 public enum DiagnosticSeverity
 {
     Info,
@@ -8,8 +18,9 @@ public enum DiagnosticSeverity
 }
 
 /// <summary>
-/// Сообщение компилятора (ошибка, предупреждение или подсказка) с привязкой к исходному тексту.
+/// Устаревший тип. Используйте <see cref="CompilerDiagnostic"/> из <c>RustSharp.Core.Diagnostics</c>.
 /// </summary>
+[Obsolete("Используйте RustSharp.Core.Diagnostics.CompilerDiagnostic")]
 public sealed record Diagnostic(
     string Code,
     string Message,
@@ -25,19 +36,18 @@ public sealed record Diagnostic(
     public static Diagnostic Info(string code, string message, SourceSpan span) =>
         new(code, message, DiagnosticSeverity.Info, span);
 
-    public override string ToString() =>
-        $"[{Severity}] {Code}: {Message} at {Span}";
+    public override string ToString() => $"[{Severity}] {Code}: {Message} at {Span}";
 }
 
 /// <summary>
-/// Коллекция диагностических сообщений, накопленных в процессе компиляции.
+/// Устаревший тип. Используйте <see cref="CompilerDiagnostics"/> из <c>RustSharp.Core.Diagnostics</c>.
 /// </summary>
+[Obsolete("Используйте RustSharp.Core.Diagnostics.CompilerDiagnostics")]
 public sealed class DiagnosticBag
 {
     private readonly List<Diagnostic> _diagnostics = new();
 
     public IReadOnlyList<Diagnostic> Diagnostics => _diagnostics;
-
     public bool HasErrors => _diagnostics.Exists(d => d.Severity == DiagnosticSeverity.Error);
 
     public void Report(Diagnostic diagnostic) => _diagnostics.Add(diagnostic);

@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using Xunit.Abstractions;
 using RustSharp.Core.Frontend;
 using RustSharp.Core.Frontend.Generated;
@@ -47,8 +47,8 @@ public class ControlFlowAndErrorTests
         _output.WriteLine("=== Parse Tree for testControlFlow ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
-        Assert.Empty(result.Diagnostics.Diagnostics);
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
+        Assert.Empty(result.Diagnostics.Errors.Messages);
 
         var func = result.Root!.topLevelItem(0).functionDeclaration();
         var stmts = func.block().statement();
@@ -113,8 +113,8 @@ public class ControlFlowAndErrorTests
         _output.WriteLine("=== Parse Tree for safeDivide ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
-        Assert.Empty(result.Diagnostics.Diagnostics);
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
+        Assert.Empty(result.Diagnostics.Errors.Messages);
 
         var func = result.Root!.topLevelItem(0).functionDeclaration();
         var stmts = func.block().statement();
@@ -177,8 +177,8 @@ public class ControlFlowAndErrorTests
         _output.WriteLine("=== Parse Tree for advancedFeatures ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
-        Assert.Empty(result.Diagnostics.Diagnostics);
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
+        Assert.Empty(result.Diagnostics.Errors.Messages);
 
         var func = result.Root!.topLevelItem(0).functionDeclaration();
         var stmts = func.block().statement();

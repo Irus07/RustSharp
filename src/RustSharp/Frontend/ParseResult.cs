@@ -1,6 +1,7 @@
 using System.Text;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using RustSharp.Core.Diagnostics;
 using RustSharp.Core.Frontend.Generated;
 
 namespace RustSharp.Core.Frontend;
@@ -11,30 +12,38 @@ namespace RustSharp.Core.Frontend;
 public sealed class ParseResult
 {
     public RustSharpParser.ProgramContext? Root { get; }
-    public DiagnosticBag Diagnostics { get; }
-    public string SourceCode { get; }
-    public string? FilePath { get; }
 
-    public bool IsSuccess => !Diagnostics.HasErrors && Root != null;
+    /// <summary>
+    /// Диагностика, накопленная за время парсинга.
+    /// Ссылается на <see cref="CompilerDiagnostics"/> контекста компиляции.
+    /// </summary>
+    public CompilerDiagnostics Diagnostics { get; }
+
+    public string SourceCode { get; }
+    public string? FilePath  { get; }
+
+    public bool IsSuccess => !Diagnostics.HasErrors && Root is not null;
 
     public ParseResult(
         RustSharpParser.ProgramContext? root,
-        DiagnosticBag diagnostics,
+        CompilerDiagnostics diagnostics,
         string sourceCode,
         string? filePath = null)
     {
-        Root = root;
+        Root        = root;
         Diagnostics = diagnostics;
-        SourceCode = sourceCode;
-        FilePath = filePath;
+        SourceCode  = sourceCode;
+        FilePath    = filePath;
     }
+
+    // ── DumpTree ─────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Возвращает структурированное визуальное представление дерева разбора (Parse Tree).
     /// </summary>
     public string DumpTree()
     {
-        if (Root == null)
+        if (Root is null)
             return "<пустое дерево разбора>";
 
         var sb = new StringBuilder();
@@ -42,9 +51,7 @@ public sealed class ParseResult
         return sb.ToString().TrimEnd();
     }
 
-    /// <summary>
-    /// Возвращает текстовое представление дерева разбора для обратной совместимости.
-    /// </summary>
+    /// <summary>Перегрузка для обратной совместимости.</summary>
     public string DumpTree(RustSharpParser? parser) => DumpTree();
 
     private static void DumpNode(ITree node, string prefix, bool isTail, StringBuilder sb)
@@ -82,13 +89,9 @@ public sealed class ParseResult
             string newPrefix = prefix;
 
             if (prefix.EndsWith("└── "))
-            {
-                newPrefix = prefix.Substring(0, prefix.Length - 4) + "    ";
-            }
+                newPrefix = prefix[..^4] + "    ";
             else if (prefix.EndsWith("├── "))
-            {
-                newPrefix = prefix.Substring(0, prefix.Length - 4) + "│   ";
-            }
+                newPrefix = prefix[..^4] + "│   ";
 
             string branch = childIsLast ? "└── " : "├── ";
             DumpNode(node.GetChild(i), newPrefix + branch, childIsLast, sb);

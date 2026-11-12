@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using Xunit.Abstractions;
 using RustSharp.Core.Frontend;
 using RustSharp.Core.Frontend.Generated;
@@ -32,8 +32,8 @@ public class ClassAndStructParserTests
         _output.WriteLine("=== Parse Tree for BaseEntity ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
-        Assert.Empty(result.Diagnostics.Diagnostics);
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
+        Assert.Empty(result.Diagnostics.Errors.Messages);
 
         var cls = result.Root!.topLevelItem(0).classDeclaration();
         Assert.NotNull(cls);
@@ -89,7 +89,7 @@ public class ClassAndStructParserTests
         _output.WriteLine("=== Parse Tree for UserPlayer ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
         var cls = result.Root!.topLevelItem(0).classDeclaration();
         Assert.NotNull(cls);
         Assert.Null(cls.OPEN());
@@ -131,7 +131,7 @@ public class ClassAndStructParserTests
         _output.WriteLine("=== Parse Tree for Vector3 ===");
         _output.WriteLine(result.DumpTree());
 
-        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Diagnostics));
+        Assert.True(result.IsSuccess, string.Join("; ", result.Diagnostics.Errors.Messages));
         var st = result.Root!.topLevelItem(0).structDeclaration();
         Assert.NotNull(st);
         Assert.NotNull(st.PUB());
@@ -165,7 +165,7 @@ public class ClassAndStructParserTests
 
         var result = CompilerFrontend.Parse(broken);
         _output.WriteLine("=== Parse Diagnostics for broken class ===");
-        foreach (var diag in result.Diagnostics.Diagnostics)
+        foreach (var diag in result.Diagnostics.Errors.Messages)
         {
             _output.WriteLine(diag.ToString());
         }

@@ -1,86 +1,87 @@
 using Antlr4.Runtime;
+using RustSharp.Core.Diagnostics;
 using RustSharp.Core.Frontend.Generated;
+using RustSharp.Core.Frontend.Stages;
+using RustSharp.Core.Pipeline;
 
 namespace RustSharp.Core.Frontend;
 
 /// <summary>
-/// Главная точка входа во фронтенд компилятора RustSharp.
-/// Преобразует исходный код в дерево синтаксического разбора (Parse Tree).
+/// Удобный фасад над модульным пайплайном компиляции.
+/// Предоставляет статические методы для быстрого разбора без ручной сборки пайплайна.
 /// </summary>
+/// <remarks>
+/// Для гибкой настройки используйте <see cref="PipelineBuilder"/> напрямую:
+/// <code>
+/// var context = new CompilationContext(source, "file.rs");
+/// var result  = PipelineBuilder
+///                 .Start(context)
+///                 .Then(new LexerStage())
+///                 .Then(new ParserFromTokensStage())
+///                 .Run();
+/// </code>
+/// </remarks>
 public static class CompilerFrontend
 {
+    // ── Быстрый разбор ───────────────────────────────────────────────────────
+
     /// <summary>
-    /// Выполняет синтаксический анализ исходного кода RustSharp.
+    /// Выполняет лексический и синтаксический анализ исходного кода.
+    /// Использует стандартный пайплайн: Lexer → Parser.
     /// </summary>
-    /// <param name="source">Исходный код программы.</param>
-    /// <param name="filePath">Опциональный путь к исходному файлу для диагностики.</param>
-    /// <returns>Результат парсинга, содержащий корень дерева разбора и диагностику.</returns>
     public static ParseResult Parse(string source, string? filePath = null)
     {
-        var diagnostics = new DiagnosticBag();
-        var errorListener = new AntlrDiagnosticErrorListener(diagnostics, filePath);
+        var context = new CompilationContext(source, filePath);
 
-        var inputStream = new AntlrInputStream(source);
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            inputStream.name = filePath;
-        }
+        var pipelineResult = PipelineBuilder
+            .Start(context)
+            .Then(new LexerStage())
+            .Then(new ParserFromTokensStage())
+            .Run();
 
-        var lexer = new RustSharpLexer(inputStream);
-        lexer.RemoveErrorListeners();
-        lexer.AddErrorListener(errorListener);
+        // Если пайплайн вернул результат — возвращаем его
+        if (pipelineResult.Output is { } parseResult)
+            return parseResult;
 
-        var tokenStream = new CommonTokenStream(lexer);
-
-        var parser = new RustSharpParser(tokenStream);
-        parser.RemoveErrorListeners();
-        parser.AddErrorListener(errorListener);
-
-        RustSharpParser.ProgramContext? root = null;
-        try
-        {
-            root = parser.program();
-        }
-        catch (RecognitionException ex)
-        {
-            diagnostics.ReportError("RS0003", $"Критическая ошибка разбора: {ex.Message}", SourceSpan.None);
-        }
-
-        return new ParseResult(root, diagnostics, source, filePath);
+        // Пайплайн прервался — возвращаем пустой результат с диагностикой
+        return new ParseResult(null, context.Diagnostics, source, filePath);
     }
 
     /// <summary>
-    /// Загружает и анализирует файл с исходным кодом RustSharp.
+    /// Загружает и анализирует файл с исходным кодом.
     /// </summary>
     public static ParseResult ParseFile(string filePath)
     {
+        var diag = new CompilerDiagnostics();
+
         if (!File.Exists(filePath))
         {
-            var bag = new DiagnosticBag();
-            bag.ReportError("RS0004", $"Файл не найден: {filePath}", SourceSpan.None);
-            return new ParseResult(null, bag, string.Empty, filePath);
+            diag.ReportError("IO1", $"Файл не найден: {filePath}");
+            return new ParseResult(null, diag, string.Empty, filePath);
         }
 
         string source = File.ReadAllText(filePath);
         return Parse(source, filePath);
     }
 
+    // ── Только лексический анализ ────────────────────────────────────────────
+
     /// <summary>
-    /// Выполняет лексический анализ (токенизацию) исходного кода.
+    /// Выполняет только лексический анализ и возвращает список токенов.
     /// </summary>
-    public static IList<IToken> Tokenize(string source, DiagnosticBag? diagnostics = null)
+    public static IList<IToken> Tokenize(string source, CompilerDiagnostics? diagnostics = null)
     {
-        var bag = diagnostics ?? new DiagnosticBag();
-        var errorListener = new AntlrDiagnosticErrorListener(bag);
+        var context = new CompilationContext(source);
 
-        var inputStream = new AntlrInputStream(source);
-        var lexer = new RustSharpLexer(inputStream);
-        lexer.RemoveErrorListeners();
-        lexer.AddErrorListener(errorListener);
+        var pipelineResult = PipelineBuilder
+            .Start(context)
+            .Then(new LexerStage())
+            .Run();
 
-        var tokenStream = new CommonTokenStream(lexer);
-        tokenStream.Fill();
+        // Переносим диагностику, если передан внешний приёмник
+        if (diagnostics is not null)
+            diagnostics.MergeFrom(context.Diagnostics);
 
-        return tokenStream.GetTokens();
+        return pipelineResult.Output ?? Array.Empty<IToken>();
     }
 }
