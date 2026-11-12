@@ -1,4 +1,6 @@
 using Antlr4.Runtime;
+using RustSharp.Core.Ast.Declarations;
+using RustSharp.Core.Ast.Stages;
 using RustSharp.Core.Diagnostics;
 using RustSharp.Core.Frontend.Generated;
 using RustSharp.Core.Frontend.Stages;
@@ -18,12 +20,13 @@ namespace RustSharp.Core.Frontend;
 ///                 .Start(context)
 ///                 .Then(new LexerStage())
 ///                 .Then(new ParserFromTokensStage())
+///                 .Then(new AstGenerationStage())
 ///                 .Run();
 /// </code>
 /// </remarks>
 public static class CompilerFrontend
 {
-    // ── Быстрый разбор ───────────────────────────────────────────────────────
+    // ── Быстрый разбор в дерево разбора (Parse Tree) ─────────────────────────
 
     /// <summary>
     /// Выполняет лексический и синтаксический анализ исходного кода.
@@ -62,6 +65,35 @@ public static class CompilerFrontend
 
         string source = File.ReadAllText(filePath);
         return Parse(source, filePath);
+    }
+
+    // ── Разбор в абстрактное синтаксическое дерево (AST) ─────────────────────
+
+    /// <summary>
+    /// Выполняет полный разбор до абстрактного синтаксического дерева (AST).
+    /// Цепочка стадий: Lexer → Parser → AstGeneration.
+    /// </summary>
+    public static PipelineResult<ProgramNode> ParseToAst(string source, string? filePath = null)
+    {
+        var context = new CompilationContext(source, filePath);
+
+        return PipelineBuilder
+            .Start(context)
+            .Then(new LexerStage())
+            .Then(new ParserFromTokensStage())
+            .Then(new AstGenerationStage())
+            .Run();
+    }
+
+    /// <summary>
+    /// Выполняет разбор до AST и возвращает корневой узел ProgramNode (или null при ошибках).
+    /// </summary>
+    public static ProgramNode? BuildAst(string source, string? filePath = null, CompilerDiagnostics? diagnostics = null)
+    {
+        var result = ParseToAst(source, filePath);
+        if (diagnostics is not null)
+            diagnostics.MergeFrom(result.Diagnostics);
+        return result.Output;
     }
 
     // ── Только лексический анализ ────────────────────────────────────────────
